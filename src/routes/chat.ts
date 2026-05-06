@@ -83,7 +83,7 @@ export async function registerChatRoutes(app: FastifyInstance) {
         model: getOpenRouterModel(modelId),
         tools,
         prompt: parsedBody.data.message,
-        maxOutputTokens: 315,
+        maxOutputTokens: 265,
         stopWhen: stepCountIs(5),
         system: "Assistente admin Nuvemshop. Seja direto. Resuma ferramenta em portugues.",
       });
