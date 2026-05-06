@@ -73,19 +73,18 @@ export async function registerChatRoutes(app: FastifyInstance) {
         if (tool) tools[name] = tool;
       }
 
-      if (Object.keys(tools).length === 0) {
-        tools.list_products = allTools.list_products;
-      }
+      tools.list_products = allTools.list_products;
 
-      const modelId = "google/gemini-2.5-flash";
+      const modelId = "gpt-oss:20b-cloud";
       app.log.info({ modelId }, "Using OpenRouter model");
       const result = await generateText({
         model: getOpenRouterModel(modelId),
         tools,
         prompt: parsedBody.data.message,
-        maxOutputTokens: 265,
+        maxOutputTokens: 120,
         stopWhen: stepCountIs(5),
-        system: "Assistente admin Nuvemshop. Seja direto. Resuma ferramenta em portugues.",
+        system:
+          "Voce e o Agente Administrativo da Nuvemshop. Se o lojista pedir para alterar um produto pelo nome, voce deve: 1) Usar list_products com o nome do produto no campo query para descobrir o ID; 2) Usar o ID retornado para executar a acao solicitada. Nunca peca IDs ao lojista. Se nao encontrar o produto pelo nome, responda: 'Nao consegui encontrar um produto com o nome [NOME]. Pode confirmar se o nome esta correto?'",
       });
 
       const text = result.text?.trim() ?? "";

@@ -9,7 +9,11 @@ import { registerAuthRoutes } from "./routes/auth.js";
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-	origin: ["https://admin.nuvemshop.com.br", "https://admin.tiendanube.com"],
+	origin: [
+		"https://admin.nuvemshop.com.br",
+		"https://admin.tiendanube.com",
+		"http://localhost:5173",
+	],
 	credentials: true,
 	allowedHeaders: ["Authorization", "Content-Type"],
 	methods: ["GET", "POST", "OPTIONS"],
