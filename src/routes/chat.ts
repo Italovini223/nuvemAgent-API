@@ -1,10 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { generateText, stepCountIs } from "ai";
+import { generateText } from "ai-sdk-ollama";
+import { stepCountIs } from "ai";
 import type { ToolSet } from "ai";
 
 import { createMcpClient } from "../lib/mcp.js";
-import { getOpenRouterModel } from "../lib/openrouter.js";
+import { ollamaProvider } from "../lib/ai-provider.js";
 
 const ChatBodySchema = z.object({
   message: z.string().min(1),
@@ -51,10 +52,10 @@ export async function registerChatRoutes(app: FastifyInstance) {
       });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!process.env.OLLAMA_API_KEY) {
       return reply.code(500).send({
-        error: "Missing OPENROUTER_API_KEY",
-        detail: "Set OPENROUTER_API_KEY in .env before starting the server.",
+        error: "Missing OLLAMA_API_KEY",
+        detail: "Set OLLAMA_API_KEY in .env before starting the server.",
       });
     }
 
@@ -76,26 +77,41 @@ export async function registerChatRoutes(app: FastifyInstance) {
       tools.list_products = allTools.list_products;
 
       const modelId = "gpt-oss:20b-cloud";
-      app.log.info({ modelId }, "Using OpenRouter model");
+      app.log.info({ modelId }, "Using Ollama model");
       const result = await generateText({
-        model: getOpenRouterModel(modelId),
+        model: ollamaProvider(modelId),
         tools,
-        prompt: parsedBody.data.message,
-        maxOutputTokens: 120,
-        stopWhen: stepCountIs(5),
+        prompt: parsedBody.data.message, 
+        stopWhen: stepCountIs(10),
         system:
-          "Voce e o Agente Administrativo da Nuvemshop. Se o lojista pedir para alterar um produto pelo nome, voce deve: 1) Usar list_products com o nome do produto no campo query para descobrir o ID; 2) Usar o ID retornado para executar a acao solicitada. Nunca peca IDs ao lojista. Se nao encontrar o produto pelo nome, responda: 'Nao consegui encontrar um produto com o nome [NOME]. Pode confirmar se o nome esta correto?'",
+          "Voce e um assistente administrativo da Nuvemshop. Regra critica: Apos executar qualquer ferramenta, voce DEVE analisar o resultado tecnico e responder ao lojista em portugues confirmando a acao ou resumindo os dados encontrados.",
       });
 
       const text = result.text?.trim() ?? "";
+      const toolCalls = (result as { toolCalls?: unknown[] }).toolCalls ?? [];
+      const toolResults = (result as { toolResults?: unknown[] }).toolResults ?? [];
+      app.log.info(
+        {
+          finishReason: (result as { finishReason?: string }).finishReason,
+          hasText: text.length > 0,
+          toolCalls: toolCalls.length,
+          toolResults: toolResults.length,
+        },
+        "LLM result summary"
+      );
       if (text) {
         return reply.send({ text });
       }
 
-      const toolCalls = (result as { toolCalls?: unknown[] }).toolCalls;
+      if (toolResults && toolResults.length > 0) {
+        return reply.send({
+          text: "Acao executada com sucesso na sua loja.",
+        });
+      }
+
       if (toolCalls && toolCalls.length > 0) {
         return reply.send({
-          text: "Acao executada no sistema, mas sem resumo em texto",
+          text: "Ferramenta executada, mas modelo nao gerou resumo.",
         });
       }
 
