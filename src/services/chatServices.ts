@@ -1,16 +1,15 @@
-import type { FastifyInstance } from "fastify";
-import { z } from "zod";
 import { generateText } from "ai-sdk-ollama";
 import { stepCountIs } from "ai";
 import type { ToolSet } from "ai";
+import type { FastifyBaseLogger } from "fastify";
 
 import { createMcpClient } from "../lib/mcp.js";
 import { ollamaProvider } from "../lib/ai-provider.js";
 
-const ChatBodySchema = z.object({
-  message: z.string().min(1),
-  toolsToLoad: z.array(z.string()).optional(),
-});
+export type ChatInput = {
+  message: string;
+  toolsToLoad?: string[];
+};
 
 function buildToolList(message: string): string[] {
   const normalized = message.toLowerCase();
@@ -42,33 +41,21 @@ function buildToolList(message: string): string[] {
   return Array.from(tools);
 }
 
-export async function registerChatRoutes(app: FastifyInstance) {
-  app.post("/chat", async (request, reply) => {
-    const parsedBody = ChatBodySchema.safeParse(request.body);
-    if (!parsedBody.success) {
-      return reply.code(400).send({
-        error: "Invalid body",
-        details: parsedBody.error.flatten(),
-      });
-    }
-
-    if (!process.env.OLLAMA_API_KEY) {
-      return reply.code(500).send({
-        error: "Missing OLLAMA_API_KEY",
-        detail: "Set OLLAMA_API_KEY in .env before starting the server.",
-      });
-    }
-
+export class ChatServices {
+  async generateReply(
+    { message, toolsToLoad }: ChatInput,
+    logger?: FastifyBaseLogger
+  ) {
     let mcpClient;
 
     try {
       mcpClient = await createMcpClient();
       const allTools = await mcpClient.tools();
-      const requestedTools = parsedBody.data.toolsToLoad;
-      const toolNames = requestedTools?.length
-        ? requestedTools
-        : buildToolList(parsedBody.data.message);
+      const toolNames = toolsToLoad?.length
+        ? toolsToLoad
+        : buildToolList(message);
       const tools = {} as ToolSet;
+
       for (const name of toolNames) {
         const tool = allTools[name as keyof typeof allTools];
         if (tool) tools[name] = tool;
@@ -77,11 +64,11 @@ export async function registerChatRoutes(app: FastifyInstance) {
       tools.list_products = allTools.list_products;
 
       const modelId = "gpt-oss:20b-cloud";
-      app.log.info({ modelId }, "Using Ollama model");
+      logger?.info({ modelId }, "Using Ollama model");
       const result = await generateText({
         model: ollamaProvider(modelId),
         tools,
-        prompt: parsedBody.data.message, 
+        prompt: message,
         stopWhen: stepCountIs(10),
         system:
           "Voce e um assistente administrativo da Nuvemshop. Regra critica: Apos executar qualquer ferramenta, voce DEVE analisar o resultado tecnico e responder ao lojista em portugues confirmando a acao ou resumindo os dados encontrados.",
@@ -89,8 +76,9 @@ export async function registerChatRoutes(app: FastifyInstance) {
 
       const text = result.text?.trim() ?? "";
       const toolCalls = (result as { toolCalls?: unknown[] }).toolCalls ?? [];
-      const toolResults = (result as { toolResults?: unknown[] }).toolResults ?? [];
-      app.log.info(
+      const toolResults = (result as { toolResults?: unknown[] })
+        .toolResults ?? [];
+      logger?.info(
         {
           finishReason: (result as { finishReason?: string }).finishReason,
           hasText: text.length > 0,
@@ -99,39 +87,36 @@ export async function registerChatRoutes(app: FastifyInstance) {
         },
         "LLM result summary"
       );
+
       if (text) {
-        return reply.send({ text });
+        return { text };
       }
 
-      if (toolResults && toolResults.length > 0) {
-        return reply.send({
+      if (toolResults.length > 0) {
+        return {
           text: "Acao executada com sucesso na sua loja.",
-        });
+        };
       }
 
-      if (toolCalls && toolCalls.length > 0) {
-        return reply.send({
+      if (toolCalls.length > 0) {
+        return {
           text: "Ferramenta executada, mas modelo nao gerou resumo.",
-        });
+        };
       }
 
-      return reply.send({ text: "" });
+      return { text: "" };
     } catch (error) {
-      app.log.error(error);
+      logger?.error(error);
       console.error("Chat generation error:", error);
-      return reply.code(500).send({
-        error: "Chat generation failed",
-        detail: error instanceof Error ? error.message : "Unknown error",
-        
-      });
+      throw error;
     } finally {
       if (mcpClient) {
         try {
           await mcpClient.close();
         } catch (closeError) {
-          app.log.error(closeError);
+          logger?.error(closeError);
         }
       }
     }
-  });
+  }
 }
