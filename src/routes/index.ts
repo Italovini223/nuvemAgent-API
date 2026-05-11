@@ -1,8 +1,8 @@
 import { FastifyInstance } from "fastify";
 
-import { registerAuthRoutes } from "./auth.routes.js";
-import { registerChatRoutes } from "./chat.routes.js";
-import { registerPromptRoutes } from "./prompt.routes.js";
+import { registerAuthRoutes } from "./auth.routes";
+import { registerChatRoutes } from "./chat.routes";
+import { registerPromptRoutes } from "./prompt.routes";
 
 export async function appRoutes(fastify: FastifyInstance) {
   fastify.register(registerAuthRoutes, { prefix: "/auth" });

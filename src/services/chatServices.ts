@@ -3,8 +3,8 @@ import { stepCountIs } from "ai";
 import type { ToolSet } from "ai";
 import type { FastifyBaseLogger } from "fastify";
 
-import { createMcpClient } from "../lib/mcp.js";
-import { ollamaProvider } from "../lib/ai-provider.js";
+import { createMcpClient } from "../lib/mcp";
+import { ollamaProvider } from "../lib/ai-provider";
 
 export type ChatInput = {
   message: string;

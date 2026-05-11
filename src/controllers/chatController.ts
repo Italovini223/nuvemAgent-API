@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
-import { ChatServices } from "../services/chatServices.js";
+import { ChatServices } from "../services/chatServices";
 
 const ChatBodySchema = z.object({
   message: z.string().min(1),

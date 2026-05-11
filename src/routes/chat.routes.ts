@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { ChatController } from "../controllers/chatController.js";
+import { ChatController } from "../controllers/chatController";
 
 export async function registerChatRoutes(app: FastifyInstance) {
   const controller = new ChatController();

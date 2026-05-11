@@ -1,13 +1,13 @@
-import { createMcpClient } from "../lib/mcp.js";
+import { createMcpPromptClient } from "../lib/mcp-prompts";
 
 export class PromptServices {
   async listPrompts() {
-    let mcpClient;
+    let mcpClient: Awaited<ReturnType<typeof createMcpPromptClient>> | undefined;
 
     try {
-      mcpClient = await createMcpClient();
-      const promptsList = await mcpClient.prompts();
-      return { prompts: promptsList };
+      mcpClient = await createMcpPromptClient();
+      const result = await mcpClient.client.listPrompts();
+      return { prompts: result.prompts };
     } finally {
       if (mcpClient) {
         await mcpClient.close();
@@ -16,12 +16,12 @@ export class PromptServices {
   }
 
   async getPromptByName(name: string) {
-    let mcpClient;
+    let mcpClient: Awaited<ReturnType<typeof createMcpPromptClient>> | undefined;
 
     try {
-      mcpClient = await createMcpClient();
-      const promptData = await mcpClient.getPrompt(name);
-      return { prompt: promptData };
+      mcpClient = await createMcpPromptClient();
+      const result = await mcpClient.client.getPrompt({ name });
+      return { prompt: result };
     } finally {
       if (mcpClient) {
         await mcpClient.close();

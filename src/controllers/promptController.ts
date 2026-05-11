@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
-import { PromptServices } from "../services/promptServices.js";
+import { PromptServices } from "../services/promptServices";
 
 type PromptParams = {
   name: string;

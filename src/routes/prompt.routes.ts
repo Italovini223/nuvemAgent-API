@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { PromptController } from "../controllers/promptController.js";
+import { PromptController } from "../controllers/promptController";
 
 export async function registerPromptRoutes(app: FastifyInstance) {
   const controller = new PromptController();
