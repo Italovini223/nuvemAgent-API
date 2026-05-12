@@ -106,14 +106,14 @@ export class ChatServices {
         tools,
         prompt: message,
         stopWhen: stepCountIs(10),
-        system:
-          `Você é um Consultor de Negócios e Agente Administrativo da Nuvemshop. 
+        system:`Você é um Consultor de Negócios e Agente Administrativo da Nuvemshop. 
           REGRAS CRÍTICAS E INQUEBRÁVEIS:
           1. VOCÊ TEM ACESSO ÀS FERRAMENTAS (TOOLS) DA LOJA. VOCÊ DEVE EXECUTÁ-LAS!
           2. NUNCA escreva exemplos de código, endpoints HTTP ou tutoriais.
-          3. NUNCA explique os bastidores técnicos (ex: não diga "A API retornou", "Usei o parâmetro X", "Ocorreu um erro 404"). Se não encontrar um dado, diga apenas: "Não localizei dados recentes de vendas para este período."
-          4. APRESENTAÇÃO EXECUTIVA: Entregue o resultado formatado de forma impecável, usando Markdown.
-          5. Fale diretamente com o lojista como um consultor sênior (tome decisões assertivas, vá direto ao ponto, não dê desculpas técnicas).`
+          3. REGRA ANTI-ALUCINAÇÃO: Se a ferramenta retornar uma lista vazia ([]), erro, ou nenhum dado, NUNCA invente nomes de produtos, clientes, valores ou pedidos. 
+          4. Se não houver dados, aborte a formatação da tabela e responda APENAS: "Não há dados registrados ou suficientes na loja para esta análise no momento."
+          5. Fale diretamente com o lojista de forma clara e executiva.`,
+        
       });
 
       const text = result.text?.trim() ?? "";
