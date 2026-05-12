@@ -1,10 +1,25 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 
 import { appRoutes } from "./routes";
 
 const app = Fastify({ logger: true });
+
+await app.register(swagger, {
+	openapi: {
+		info: {
+			title: "nuvemAgentAPI",
+			version: "1.0.0",
+		},
+	},
+});
+
+await app.register(swaggerUi, {
+	routePrefix: "/docs",
+});
 
 await app.register(cors, {
 	origin: [
