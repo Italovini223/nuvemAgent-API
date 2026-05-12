@@ -15,30 +15,66 @@ function buildToolList(message: string): string[] {
   const normalized = message.toLowerCase();
   const tools = new Set<string>();
 
-  if (normalized.includes("produto") || normalized.includes("estoque")) {
-    tools.add("list_products");
-    tools.add("get_product");
-    tools.add("update_product");
-    tools.add("update_product_stock_price");
-  }
+// Produtos, Estoque e Performance
+    if (
+      normalized.includes("produto") || normalized.includes("estoque") || 
+      normalized.includes("product") || normalized.includes("stock") ||
+      normalized.includes("inventory") || normalized.includes("performance")
+    ) {
+      tools.add("list_products");
+      tools.add("get_product");
+      tools.add("update_product");
+      tools.add("update_product_stock_price");
+      tools.add("list_product_variants");
+    }
 
-  if (normalized.includes("categoria")) {
-    tools.add("list_categories");
-    tools.add("create_category");
-    tools.add("update_category");
-  }
+    // Pedidos, Vendas e Faturamento (CRUCIAL PARA ANÁLISES)
+    if (
+      normalized.includes("pedido") || normalized.includes("order") || 
+      normalized.includes("venda") || normalized.includes("sales") || 
+      normalized.includes("revenue") || normalized.includes("performance")
+    ) {
+      tools.add("list_orders");
+      tools.add("get_order");
+    }
 
-  if (normalized.includes("cupom")) {
-    tools.add("list_coupons");
-    tools.add("create_coupon");
-  }
+    // Categorias
+    if (normalized.includes("categoria") || normalized.includes("category")) {
+      tools.add("list_categories");
+      tools.add("create_category");
+      tools.add("update_category");
+    }
 
-  if (tools.size === 0) {
-    tools.add("list_products");
-    tools.add("get_store");
-  }
+    // Cupons
+    if (normalized.includes("cupom") || normalized.includes("coupon")) {
+      tools.add("list_coupons");
+      tools.add("create_coupon");
+    }
 
-  return Array.from(tools);
+    // Carrinhos Abandonados
+    if (normalized.includes("abandoned") || normalized.includes("carrinho")) {
+      tools.add("list_abandoned_checkouts");
+      tools.add("get_abandoned_checkout");
+      tools.add("add_coupon_to_abandoned_checkout");
+    }
+
+    // Blog
+    if (normalized.includes("blog") || normalized.includes("post")) {
+      tools.add("get_blog");
+      tools.add("list_blog_posts");
+      tools.add("get_blog_post");
+      tools.add("create_blog_post");
+      tools.add("update_blog_post");
+    }
+
+    // Fallback garantido
+    if (tools.size === 0) {
+      tools.add("list_products");
+      tools.add("get_store");
+    }
+
+    return Array.from(tools);
+  
 }
 
 export class ChatServices {
@@ -71,7 +107,13 @@ export class ChatServices {
         prompt: message,
         stopWhen: stepCountIs(10),
         system:
-          "Voce e um assistente administrativo da Nuvemshop. Regra critica: Apos executar qualquer ferramenta, voce DEVE analisar o resultado tecnico e responder ao lojista em portugues confirmando a acao ou resumindo os dados encontrados.",
+          `Você é um Consultor de Negócios e Agente Administrativo da Nuvemshop. 
+          REGRAS CRÍTICAS E INQUEBRÁVEIS:
+          1. VOCÊ TEM ACESSO ÀS FERRAMENTAS (TOOLS) DA LOJA. VOCÊ DEVE EXECUTÁ-LAS!
+          2. NUNCA escreva exemplos de código, endpoints HTTP ou tutoriais.
+          3. NUNCA explique os bastidores técnicos (ex: não diga "A API retornou", "Usei o parâmetro X", "Ocorreu um erro 404"). Se não encontrar um dado, diga apenas: "Não localizei dados recentes de vendas para este período."
+          4. APRESENTAÇÃO EXECUTIVA: Entregue o resultado formatado de forma impecável, usando Markdown.
+          5. Fale diretamente com o lojista como um consultor sênior (tome decisões assertivas, vá direto ao ponto, não dê desculpas técnicas).`
       });
 
       const text = result.text?.trim() ?? "";
